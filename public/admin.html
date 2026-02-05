@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Lakshmi Bhavan — Ready Orders (Admin)</title>
     <link rel="stylesheet" href="/css/style.css">
-    <script src="/socket.io/socket.io.js"></script>
-    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0b6efd">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -35,90 +33,74 @@
         </div>
     </div>
 
-    <script>
-      const socket = io();
-      const orderInput = document.getElementById('orderInput');
-      const noteInput = document.getElementById('noteInput');
-      const sendBtn = document.getElementById('sendBtn');
-      const recent = document.getElementById('recent');
-      const clearBtn = document.getElementById('clearBtn');
+<script>
+const orderInput = document.getElementById('orderInput');
+const noteInput  = document.getElementById('noteInput');
+const recent     = document.getElementById('recent');
+const sendBtn    = document.getElementById('sendBtn');
+const clearBtn   = document.getElementById('clearBtn');
 
-      const addRecent = (o) => {
-        const el = document.createElement('div');
-        el.className = 'recent-item';
-        // store id for deletes
-        el.dataset.id = o.id || '';
-        const left = document.createElement('div');
-        left.innerHTML = `<strong>${o.order}</strong> ${o.note ? ' — '+o.note : ''}`;
-        const right = document.createElement('div');
-        right.className = 'small';
-        right.textContent = new Date(o.ts).toLocaleTimeString();
+function addOrder(o){
+  const div = document.createElement('div');
+  div.dataset.id = o.id;
+  div.innerHTML = `
+    <b>${o.order}</b> ${o.note || ''}
+    <button 
+  onclick="removeOrder('${o.id}','${o.order}')"
+  style="background:#8B4513;color:white;border:none;
+         padding:6px 12px;border-radius:6px;cursor:pointer;">
+  Delete
+</button>
 
-        const delBtn = document.createElement('button');
-        delBtn.textContent = 'Delete';
-        delBtn.className = 'btn';
-        delBtn.style.background = '#aa2d00';
-        delBtn.style.marginLeft = '12px';
-        delBtn.addEventListener('click', ()=>{
-          // emit remove-order by id when available
-          const id = el.dataset.id;
-          if(id) socket.emit('remove-order', { id });
-          else socket.emit('remove-order', { order: o.order });
-          // remove from local recent list immediately
-          if(el.parentNode) el.parentNode.removeChild(el);
-        });
+  `;
+  recent.prepend(div);
+}
 
-        const container = document.createElement('div');
-        container.style.display = 'flex';
-        container.style.alignItems = 'center';
-        container.appendChild(right);
-        container.appendChild(delBtn);
+sendBtn.onclick = sendOrder;
 
-        el.appendChild(left);
-        el.appendChild(container);
+function sendOrder(){
+  if(!orderInput.value.trim()) return;
+  fetch('/ready-order',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      order: orderInput.value.trim(),
+      note: noteInput.value.trim()
+    })
+  });
+  orderInput.value='';
+  noteInput.value='';
+}
 
-        recent.prepend(el);
-        // keep only last 12
-        while(recent.children.length>50) recent.removeChild(recent.lastChild);
-      }
-      sendBtn.addEventListener('click', () => {
-        const order = orderInput.value.trim();
-        const note = noteInput.value.trim();
-        if(!order) return orderInput.focus();
-        const payload = { order, note };
-        socket.emit('ready-order', payload);
-        orderInput.value=''; noteInput.value='';
-      });
+function removeOrder(id,order){
+  fetch('/remove-order',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id,order})
+  });
+}
 
-      socket.on('ready-order', (payload)=>{
-        // payload now contains canonical { id, order, note, ts }
-        addRecent(payload);
-      });
+/* 🔴 SSE — real-time updates */
+const es = new EventSource('/events');
+es.onmessage = (e)=>{
+  const data = JSON.parse(e.data);
 
-      // When connecting we may receive an initial set of orders
-      socket.on('init-orders', (list)=>{
-        // list is newest-first; add them visually (avoid duplicates)
-        const existing = new Set(Array.from(recent.querySelectorAll('.recent-item')).map(n=>n.dataset.id));
-        list.forEach(item=>{ if(!existing.has(item.id)) addRecent(item); });
-      });
+  if(data.type === 'init'){
+    recent.innerHTML='';
+    data.orders.forEach(addOrder);
+  }
 
-      clearBtn.addEventListener('click', ()=>{ 
-        // emit remove for all recent orders so displays clear them too
-        Array.from(recent.querySelectorAll('.recent-item')).forEach(item=>{
-          const orderText = item.querySelector('strong')?.textContent?.trim();
-          if(orderText) socket.emit('remove-order',{ order: orderText });
-        });
-        recent.innerHTML='';
-      });
+  if(data.type === 'add'){
+    addOrder(data.order);
+  }
 
-      // Enter key support
-      orderInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendBtn.click(); });
-    </script>
+  if(data.type === 'remove'){
+    document.querySelectorAll('[data-id]').forEach(el=>{
+      if(el.dataset.id === data.id) el.remove();
+    });
+  }
+};
+</script>
 
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.js');
-      }
-    </script>
   </body>
 </html>
