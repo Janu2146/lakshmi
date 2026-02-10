@@ -1,171 +1,100 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Lakshmi Bhavan — Ready Orders (Admin)</title>
-    <link rel="stylesheet" href="/css/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin</title>
+<link rel="stylesheet" href="/css/style.css">
 </head>
 
- <header class="header">
-      <img src="logo.png" alt="Lakshmi Bhavan logo" class="logo">
-    </header>
+<body>
+<header class="header">
+  <img src="/logo.png" class="logo">
+</header>
 
 <div class="container" style="max-width:1000px;margin:40px auto">
-  <div class="card" >
+<div class="card">
 
-    <h3 style="margin-top:0;color:#6b3b12">Mark Order Ready</h3>
+<h3>Mark Order Ready</h3>
 
-    <!-- Order input -->
-    <div style="display:flex;gap:12px">
-      <input id="orderInput"
-        placeholder="Order number"
-        autocomplete="off"
-        style="
-          flex:1;
-          padding:14px;
-          font-size:16px;
-          border-radius:12px;
-          border:1px solid #e5c8ad;
-        " />
+<div style="display:flex;gap:12px">
+  <input id="orderInput" placeholder="Order number" style="flex:1;padding:14px">
+  <button id="sendBtn" style="width:90px">Ready</button>
+</div>
 
-      <button id="sendBtn"
-        style="
-          width:90px;
-          border:none;
-          border-radius:12px;
-          background:#f4a259;
-          color:white;
-          font-size:15px;
-          cursor:pointer;
-        ">
-        Ready
-      </button>
-    </div>
+<input id="noteInput" placeholder="Optional note" style="margin-top:10px;width:100%;padding:12px">
 
-    <!-- Optional note -->
-    <div style="margin-top:10px">
-      <input id="noteInput"
-        placeholder="Optional note"
-        style="
-          width:100%;
-          padding:12px;
-          font-size:14px;
-          border-radius:10px;
-          border:1px solid #eee;
-        " />
-    </div>
+<div style="display:flex;justify-content:space-between;margin-top:18px">
+  <div>Ready Orders</div>
+  <button id="clearBtn" style="background:#c35400;color:white">Clear All</button>
+</div>
 
-    <!-- Header row -->
-    <div style="
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-top:18px;
-    ">
-      <div style="font-weight:600;color:#6b3b12">
-        Ready Orders
-      </div>
-
-      <button id="clearBtn"
-        style="
-          background:#c35400;
-          color:white;
-          border:none;
-          border-radius:12px;
-          padding:10px 16px;
-          cursor:pointer;
-        ">
-        Clear All
-      </button>
-    </div>
-
-    <!-- Ready list -->
-    <div id="recent" style="margin-top:10px"></div>
-
-  </div>
+<div id="recent"></div>
+</div>
 </div>
 
 <script>
-const orderInput = document.getElementById("orderInput");
-const noteInput  = document.getElementById("noteInput");
-const recent     = document.getElementById("recent");
-const sendBtn    = document.getElementById("sendBtn");
-const clearBtn   = document.getElementById("clearBtn");
+const orderInput = document.getElementById('orderInput');
+const noteInput  = document.getElementById('noteInput');
+const sendBtn    = document.getElementById('sendBtn');
+const clearBtn   = document.getElementById('clearBtn');
+const recent     = document.getElementById('recent');
 
 let orders = [];
 
-sendBtn.onclick = () => {
+sendBtn.onclick = ()=>{
   if(!orderInput.value.trim()) return;
-  orders.unshift({
-    id: Date.now(),
-    order: orderInput.value.trim(),
-    note: noteInput.value.trim()
+
+  fetch('/ready-order',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      order:orderInput.value.trim(),
+      note:noteInput.value.trim()
+    })
   });
+
   orderInput.value='';
   noteInput.value='';
-  render();
 };
 
-clearBtn.onclick = () => {
-  orders = [];
-  render();
+clearBtn.onclick = ()=>{
+  fetch('/clear-orders',{method:'POST'});
 };
 
-function removeOrder(id){
-  orders = orders.filter(o => o.id !== id);
-  render();
+function deleteOrder(id){
+  fetch('/remove-order',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ id })
+  });
 }
 
 function render(){
-  recent.innerHTML = "";
-
-  orders.forEach(o => {
-    const row = document.createElement("div");
-
-    row.innerHTML = `
-      <div style="
-        display:flex;
-        align-items:center;
-        gap:16px;
-        padding:10px 0;
-        border-bottom:1px solid #f0e0d2;
-      ">
-        <div style="
-          width:80px;
-          font-size:22px;
-          font-weight:700;
-          color:#5a3613;
-        ">
-          ${o.order}
-        </div>
-
-        <div style="
-          flex:1;
-          font-size:14px;
-          color:#8a6b52;
-        ">
-          ${o.note || ""}
-        </div>
-
-        <button onclick="removeOrder(${o.id})"
-          style="
-            background:#8B4513;
-            color:white;
-            border:none;
-            padding:6px 14px;
-            border-radius:8px;
-            cursor:pointer;
-          ">
-          Delete
-        </button>
+  recent.innerHTML='';
+  orders.forEach(o=>{
+    const row=document.createElement('div');
+    row.innerHTML=`
+      <div style="display:flex;gap:16px;padding:10px 0;border-bottom:1px solid #eee">
+        <div style="width:80px;font-size:22px">${o.order}</div>
+        <div style="flex:1">${o.note||''}</div>
+        <button onclick="deleteOrder('${o.id}')" style="background:#8B4513;color:white">Delete</button>
       </div>
     `;
-
     recent.appendChild(row);
   });
 }
-</script>
 
+/* SSE */
+const es=new EventSource('/events');
+es.onmessage=e=>{
+  const data=JSON.parse(e.data);
+
+  if(data.type==='init'){ orders=data.orders; render(); }
+  if(data.type==='add'){ orders.unshift(data.order); render(); }
+  if(data.type==='remove'){ orders=orders.filter(o=>o.id!==data.id); render(); }
+  if(data.type==='clear'){ orders=[]; render(); }
+};
+</script>
 </body>
 </html>
