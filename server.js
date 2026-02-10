@@ -60,6 +60,13 @@ app.post('/remove-order', (req, res) => {
   res.json({ success: true });
 });
 
+app.post('/clear-orders',(req,res)=>{
+  orders = [];
+  sendEvent({ type:'clear' });
+  res.sendStatus(200);
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running → http://localhost:${PORT}`);
 });
