@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Lakshmi Bhavan — Ready Orders (Admin)</title>
 
-  <!-- ✅ CSS -->
+  <!-- CSS -->
   <link rel="stylesheet" href="/css/style.css">
 </head>
 
@@ -21,23 +21,26 @@
 
     <h3>Mark Order Ready</h3>
 
+    <!-- Order input -->
     <div class="input-row">
       <input id="orderInput" placeholder="Order number" />
       <button id="sendBtn" class="btn">Ready</button>
     </div>
 
-    <div style="margin-top:12px">
+    <!-- Note input (FIXED: wrapped in input-row) -->
+    <div class="input-row" style="margin-top:10px">
       <input id="noteInput" placeholder="Optional note" />
     </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+    <!-- Header row -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
       <div class="small">Ready Orders</div>
       <button id="clearBtn" class="btn" style="background:#c35400">
         Clear All
       </button>
     </div>
 
-    <!-- ✅ IMPORTANT -->
+    <!-- Orders list -->
     <div id="recent" class="recent-list"></div>
 
   </div>
@@ -54,7 +57,7 @@ const recent     = document.getElementById('recent');
 /* ADD ORDER */
 function addOrder(o){
   const div = document.createElement('div');
-  div.className = 'recent-item';      // ✅ CSS hooks
+  div.className = 'recent-item';
   div.dataset.id = o.id;
 
   div.innerHTML = `
@@ -63,7 +66,8 @@ function addOrder(o){
       ${o.note ? `<div class="small">${o.note}</div>` : ''}
     </div>
 
-    <button class="btn"
+    <button
+      class="btn"
       style="background:#8B4513"
       onclick="removeOrder('${o.id}')">
       Delete
@@ -77,57 +81,57 @@ function addOrder(o){
 sendBtn.onclick = () => {
   if(!orderInput.value.trim()) return;
 
-  fetch('/ready-order',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
+  fetch('/ready-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       order: orderInput.value.trim(),
       note: noteInput.value.trim()
     })
   });
 
-  orderInput.value='';
-  noteInput.value='';
+  orderInput.value = '';
+  noteInput.value = '';
 };
 
-/* REMOVE ORDER */
+/* REMOVE ONE */
 function removeOrder(id){
-  fetch('/remove-order',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ id })
+  fetch('/remove-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
   });
 }
 
 /* CLEAR ALL */
 clearBtn.onclick = () => {
-  recent.innerHTML='';                 // instant UI
-  fetch('/clear-orders',{ method:'POST' });
+  recent.innerHTML = '';  // instant UI
+  fetch('/clear-orders', { method: 'POST' });
 };
 
 /* SSE */
 const es = new EventSource('/events');
 
-es.onmessage = (e)=>{
+es.onmessage = (e) => {
   const data = JSON.parse(e.data);
 
-  if(data.type === 'init'){
-    recent.innerHTML='';
+  if (data.type === 'init') {
+    recent.innerHTML = '';
     data.orders.forEach(addOrder);
   }
 
-  if(data.type === 'add'){
+  if (data.type === 'add') {
     addOrder(data.order);
   }
 
-  if(data.type === 'remove'){
-    document.querySelectorAll('.recent-item').forEach(el=>{
-      if(el.dataset.id === data.id) el.remove();
+  if (data.type === 'remove') {
+    document.querySelectorAll('.recent-item').forEach(el => {
+      if (el.dataset.id === data.id) el.remove();
     });
   }
 
-  if(data.type === 'clear'){
-    recent.innerHTML='';
+  if (data.type === 'clear') {
+    recent.innerHTML = '';
   }
 };
 </script>
