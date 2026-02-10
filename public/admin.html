@@ -4,16 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Lakshmi Bhavan — Ready Orders (Admin)</title>
+
+  <!-- ✅ CSS -->
   <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
+
 <header class="header">
-  <img src="logo.png" class="logo">
+  <img src="logo.png" alt="Lakshmi Bhavan logo" class="logo">
 </header>
 
-<div class="container" style="max-width:1000px">
+<div class="container admin-panel">
+
   <div class="card">
+
     <h3>Mark Order Ready</h3>
 
     <div class="input-row">
@@ -21,17 +26,22 @@
       <button id="sendBtn" class="btn">Ready</button>
     </div>
 
-    <input id="noteInput" placeholder="Optional note" />
+    <div style="margin-top:12px">
+      <input id="noteInput" placeholder="Optional note" />
+    </div>
 
-    <div style="display:flex;justify-content:space-between;margin-top:12px">
-      <div>Ready Orders</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+      <div class="small">Ready Orders</div>
       <button id="clearBtn" class="btn" style="background:#c35400">
         Clear All
       </button>
     </div>
 
-    <div id="recent"></div>
+    <!-- ✅ IMPORTANT -->
+    <div id="recent" class="recent-list"></div>
+
   </div>
+
 </div>
 
 <script>
@@ -41,18 +51,25 @@ const sendBtn    = document.getElementById('sendBtn');
 const clearBtn   = document.getElementById('clearBtn');
 const recent     = document.getElementById('recent');
 
-/* ADD ORDER TO UI */
+/* ADD ORDER */
 function addOrder(o){
   const div = document.createElement('div');
+  div.className = 'recent-item';      // ✅ CSS hooks
   div.dataset.id = o.id;
+
   div.innerHTML = `
-    <b>${o.order}</b> ${o.note || ''}
-    <button onclick="removeOrder('${o.id}')"
-      style="margin-left:10px;background:#8B4513;color:#fff;
-      border:none;padding:4px 8px;border-radius:5px">
+    <div>
+      <strong>${o.order}</strong>
+      ${o.note ? `<div class="small">${o.note}</div>` : ''}
+    </div>
+
+    <button class="btn"
+      style="background:#8B4513"
+      onclick="removeOrder('${o.id}')">
       Delete
     </button>
   `;
+
   recent.prepend(div);
 }
 
@@ -73,7 +90,7 @@ sendBtn.onclick = () => {
   noteInput.value='';
 };
 
-/* REMOVE ONE */
+/* REMOVE ORDER */
 function removeOrder(id){
   fetch('/remove-order',{
     method:'POST',
@@ -82,13 +99,13 @@ function removeOrder(id){
   });
 }
 
-/* 🔥 CLEAR ALL — FIXED */
+/* CLEAR ALL */
 clearBtn.onclick = () => {
-  recent.innerHTML = '';                 // ✅ instant UI clear
-  fetch('/clear-orders', { method:'POST' });
+  recent.innerHTML='';                 // instant UI
+  fetch('/clear-orders',{ method:'POST' });
 };
 
-/* 🔴 SSE */
+/* SSE */
 const es = new EventSource('/events');
 
 es.onmessage = (e)=>{
@@ -104,7 +121,7 @@ es.onmessage = (e)=>{
   }
 
   if(data.type === 'remove'){
-    document.querySelectorAll('[data-id]').forEach(el=>{
+    document.querySelectorAll('.recent-item').forEach(el=>{
       if(el.dataset.id === data.id) el.remove();
     });
   }
@@ -114,5 +131,6 @@ es.onmessage = (e)=>{
   }
 };
 </script>
+
 </body>
 </html>
