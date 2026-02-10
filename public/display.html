@@ -1,72 +1,61 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Lakshmi Bhavan — Ready Orders (Display)</title>
-
-  <link rel="stylesheet" href="/css/style.css">
-  <meta name="theme-color" content="#0b6efd">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Display</title>
+<link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
-  <header class="header">
-    <img src="logo.png" alt="Lakshmi Bhavan logo" class="logo">
-  </header>
-  <div class="lb"></div>
+<header class="header">
+  <img src="/logo.png" class="logo">
+</header>
 
-  <div class="tv-wrap">
-    <div class="tv-body">
-      <div class="order-grid" id="orders"></div>
-    </div>
+<div class="tv-wrap">
+  <div class="tv-body">
+    <div class="order-grid" id="orders"></div>
   </div>
+</div>
 
-  <footer class="footer">
-    © Lakshmi Bhavan
-  </footer>
+<script>
+const ordersEl=document.getElementById('orders');
 
-  <script>
-    const ordersEl = document.getElementById('orders');
+function showOrder(o){
+  const div=document.createElement('div');
+  div.className='order-card';
+  div.dataset.id=o.id;
 
-    function formatTime(ts) {
-      return new Date(ts).toLocaleTimeString();
-    }
+  div.innerHTML=`
+    <div class="order-num">${o.order}</div>
+    <div class="order-meta">
+      <div class="small">${o.note||''}</div>
+      <div class="small">${new Date(o.ts).toLocaleTimeString()}</div>
+    </div>
+  `;
+  ordersEl.prepend(div);
+}
 
-    function showOrder(o) {
-      const div = document.createElement('div');
-      div.className = 'card';
-      div.dataset.id = o.id;
+/* SSE */
+const es=new EventSource('/events');
+es.onmessage=e=>{
+  const data=JSON.parse(e.data);
 
-      div.innerHTML = `
-        <div class="order-num">${o.order}</div>
-        <div class="time">${formatTime(o.ts)}</div>
-        <div class="note">${o.note || ''}</div>
-      `;
+  if(data.type==='init'){
+    ordersEl.innerHTML='';
+    data.orders.forEach(showOrder);
+  }
 
-      ordersEl.prepend(div);
-    }
+  if(data.type==='add'){ showOrder(data.order); }
 
-    /* 🔴 SSE */
-    const es = new EventSource('/events');
+  if(data.type==='remove'){
+    document.querySelectorAll('.order-card').forEach(c=>{
+      if(c.dataset.id===data.id) c.remove();
+    });
+  }
 
-    es.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-
-      if (data.type === 'init') {
-        ordersEl.innerHTML = '';
-        data.orders.forEach(showOrder);
-      }
-
-      if (data.type === 'add') {
-        showOrder(data.order);
-      }
-
-      if (data.type === 'remove') {
-        document.querySelectorAll('.card').forEach(card => {
-          if (card.dataset.id === data.id) card.remove();
-        });
-      }
-    };
-  </script>
+  if(data.type==='clear'){ ordersEl.innerHTML=''; }
+};
+</script>
 </body>
 </html>
