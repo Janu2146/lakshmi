@@ -4,19 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Lakshmi Bhavan — Ready Orders (Admin)</title>
-
-  <!-- CSS -->
   <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
 
 <header class="header">
-  <img src="logo.png" alt="Lakshmi Bhavan logo" class="logo">
+  <img src="logo.png" class="logo">
 </header>
 
 <div class="container admin-panel">
-
   <div class="card">
 
     <h3>Mark Order Ready</h3>
@@ -27,24 +24,33 @@
       <button id="sendBtn" class="btn">Ready</button>
     </div>
 
-    <!-- Note input (FIXED: wrapped in input-row) -->
+    <!-- ✅ Optional note FIXED -->
     <div class="input-row" style="margin-top:10px">
-      <input id="noteInput" placeholder="Optional note" />
+      <input
+        id="noteInput"
+        placeholder="Optional note"
+        style="
+          flex:1;
+          padding:14px 16px;
+          border-radius:8px;
+          border:1px solid #e6d6c7;
+          font-size:16px;
+        "
+      />
     </div>
 
-    <!-- Header row -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
       <div class="small">Ready Orders</div>
       <button id="clearBtn" class="btn" style="background:#c35400">
         Clear All
       </button>
     </div>
 
-    <!-- Orders list -->
+    <!-- Orders -->
     <div id="recent" class="recent-list"></div>
 
   </div>
-
 </div>
 
 <script>
@@ -54,24 +60,54 @@ const sendBtn    = document.getElementById('sendBtn');
 const clearBtn   = document.getElementById('clearBtn');
 const recent     = document.getElementById('recent');
 
-/* ADD ORDER */
+/* ✅ ADD ORDER — ALIGNMENT FIXED */
 function addOrder(o){
   const div = document.createElement('div');
   div.className = 'recent-item';
   div.dataset.id = o.id;
 
   div.innerHTML = `
-    <div>
-      <strong>${o.order}</strong>
-      ${o.note ? `<div class="small">${o.note}</div>` : ''}
-    </div>
+    <div style="
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      width:100%;
+      gap:12px;
+    ">
+      <!-- Order number -->
+      <div style="
+        font-size:22px;
+        font-weight:700;
+        min-width:70px;
+        text-align:left;
+      ">
+        ${o.order}
+      </div>
 
-    <button
-      class="btn"
-      style="background:#8B4513"
-      onclick="removeOrder('${o.id}')">
-      Delete
-    </button>
+      <!-- Note -->
+      <div style="
+        flex:1;
+        font-size:14px;
+        color:#8a6b52;
+      ">
+        ${o.note || ''}
+      </div>
+
+      <!-- ✅ Delete button FIXED -->
+      <button
+        onclick="removeOrder('${o.id}')"
+        style="
+          background:#8B4513;
+          color:white;
+          border:none;
+          padding:6px 14px;
+          border-radius:8px;
+          font-size:14px;
+          cursor:pointer;
+        ">
+        Delete
+      </button>
+    </div>
   `;
 
   recent.prepend(div);
@@ -81,57 +117,57 @@ function addOrder(o){
 sendBtn.onclick = () => {
   if(!orderInput.value.trim()) return;
 
-  fetch('/ready-order', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+  fetch('/ready-order',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
       order: orderInput.value.trim(),
       note: noteInput.value.trim()
     })
   });
 
-  orderInput.value = '';
-  noteInput.value = '';
+  orderInput.value='';
+  noteInput.value='';
 };
 
 /* REMOVE ONE */
 function removeOrder(id){
-  fetch('/remove-order', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id })
+  fetch('/remove-order',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ id })
   });
 }
 
 /* CLEAR ALL */
 clearBtn.onclick = () => {
-  recent.innerHTML = '';  // instant UI
-  fetch('/clear-orders', { method: 'POST' });
+  recent.innerHTML='';
+  fetch('/clear-orders',{ method:'POST' });
 };
 
 /* SSE */
 const es = new EventSource('/events');
 
-es.onmessage = (e) => {
+es.onmessage = (e)=>{
   const data = JSON.parse(e.data);
 
-  if (data.type === 'init') {
-    recent.innerHTML = '';
+  if(data.type === 'init'){
+    recent.innerHTML='';
     data.orders.forEach(addOrder);
   }
 
-  if (data.type === 'add') {
+  if(data.type === 'add'){
     addOrder(data.order);
   }
 
-  if (data.type === 'remove') {
-    document.querySelectorAll('.recent-item').forEach(el => {
-      if (el.dataset.id === data.id) el.remove();
+  if(data.type === 'remove'){
+    document.querySelectorAll('.recent-item').forEach(el=>{
+      if(el.dataset.id === data.id) el.remove();
     });
   }
 
-  if (data.type === 'clear') {
-    recent.innerHTML = '';
+  if(data.type === 'clear'){
+    recent.innerHTML='';
   }
 };
 </script>
