@@ -9,7 +9,7 @@
 
 <body>
 <header class="header">
-  <img src="logo.png" alt="Lakshmi Bhavan logo" class="logo">
+  <img src="logo.png" class="logo">
 </header>
 
 <div class="container" style="max-width:1000px">
@@ -25,7 +25,9 @@
 
     <div style="display:flex;justify-content:space-between;margin-top:12px">
       <div>Ready Orders</div>
-      <button id="clearBtn" class="btn" style="background:#c35400">Clear All</button>
+      <button id="clearBtn" class="btn" style="background:#c35400">
+        Clear All
+      </button>
     </div>
 
     <div id="recent"></div>
@@ -39,16 +41,22 @@ const sendBtn    = document.getElementById('sendBtn');
 const clearBtn   = document.getElementById('clearBtn');
 const recent     = document.getElementById('recent');
 
+/* ADD ORDER TO UI */
 function addOrder(o){
   const div = document.createElement('div');
   div.dataset.id = o.id;
   div.innerHTML = `
     <b>${o.order}</b> ${o.note || ''}
-    <button onclick="removeOrder('${o.id}')">Delete</button>
+    <button onclick="removeOrder('${o.id}')"
+      style="margin-left:10px;background:#8B4513;color:#fff;
+      border:none;padding:4px 8px;border-radius:5px">
+      Delete
+    </button>
   `;
   recent.prepend(div);
 }
 
+/* SEND ORDER */
 sendBtn.onclick = () => {
   if(!orderInput.value.trim()) return;
 
@@ -65,6 +73,7 @@ sendBtn.onclick = () => {
   noteInput.value='';
 };
 
+/* REMOVE ONE */
 function removeOrder(id){
   fetch('/remove-order',{
     method:'POST',
@@ -73,10 +82,13 @@ function removeOrder(id){
   });
 }
 
+/* 🔥 CLEAR ALL — FIXED */
 clearBtn.onclick = () => {
+  recent.innerHTML = '';                 // ✅ instant UI clear
   fetch('/clear-orders', { method:'POST' });
 };
 
+/* 🔴 SSE */
 const es = new EventSource('/events');
 
 es.onmessage = (e)=>{
